@@ -3,6 +3,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TaskProvider } from "@/contexts/TaskContext";
 import { Outlet, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "./Dashboard";
 import Tasks from "./Tasks";
 import Today from "./Today";
@@ -16,12 +17,14 @@ const Layout = () => {
   return (
     <SidebarProvider>
       <TaskProvider>
-        <div className="w-full min-h-screen flex">
-          <AppSidebar />
-          <main className="flex-1">
-            <Outlet />
-          </main>
-        </div>
+        <TooltipProvider>
+          <div className="w-full min-h-screen flex">
+            <AppSidebar />
+            <main className="flex-1">
+              <Outlet />
+            </main>
+          </div>
+        </TooltipProvider>
       </TaskProvider>
     </SidebarProvider>
   );
