@@ -29,12 +29,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
 
   const handleComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    completeTask(task.id);
+    try {
+      completeTask(task.id);
+    } catch (error) {
+      console.error("Failed to update task status:", error);
+    }
   };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    deleteTask(task.id);
+    try {
+      deleteTask(task.id);
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+    }
   };
 
   // Function to render the due date status

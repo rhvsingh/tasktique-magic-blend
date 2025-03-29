@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ApiTask, fetchTasks, createTask, updateTask, deleteTask, processAiTasks } from '@/lib/api';
+import { ApiTask, fetchTasks, createTask, updateTask as apiUpdateTask, deleteTask as apiDeleteTask, processAiTasks } from '@/lib/api';
 
 export type Priority = 'low' | 'medium' | 'high';
 export type EstimationType = 'minutes' | 'hours' | 'days';
@@ -40,7 +40,7 @@ interface TaskContextProps {
   isLoading: boolean;
   error: string | null;
   stats: TaskStats;
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'completed'>) => Promise<void>;
+  addTask: (task: Omit<Task, 'id' | 'createdAt'>) => Promise<void>;
   updateTask: (id: string, updatedTask: Partial<Omit<Task, 'id' | 'createdAt'>>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   completeTask: (id: string) => Promise<void>;
@@ -84,19 +84,20 @@ const mapApiTaskToTask = (apiTask: ApiTask): Task => ({
   createdAt: apiTask.created_at || new Date().toISOString(),
   dueDate: apiTask.due_date,
   priority: apiTask.priority,
-  estimationType: apiTask.estimation_type || 'hours',
-  estimationValue: apiTask.estimation_value || 0,
+  estimationType: apiTask.estimation_type,
+  estimationValue: apiTask.estimation_value,
   tags: [],
 });
 
 // Helper function to convert our app's task format to API task format
-const mapTaskToApiTask = (task: Omit<Task, 'id' | 'createdAt' | 'completed'>): Omit<ApiTask, '_id'> => ({
+const mapTaskToApiTask = (task: Omit<Task, 'id' | 'createdAt'>): Omit<ApiTask, '_id'> => ({
   title: task.title,
   description: task.description,
   priority: task.priority,
   due_date: task.dueDate,
   estimation_type: task.estimationType,
   estimation_value: task.estimationValue,
+  completed: task.completed,
   created_at: null,
   updated_at: null,
 });
@@ -147,6 +148,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while fetching tasks');
+      toast.error(err instanceof Error ? err.message : 'Failed to load tasks');
     } finally {
       setIsLoading(false);
     }
@@ -186,7 +188,8 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Add a new task
-  const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'completed'>) => {
+  const addTask = async (task: Omit<Task, 'id' | 'createdAt'>) => {
+    setIsLoading(true);
     try {
       const apiTask = mapTaskToApiTask(task);
       const response = await createTask(apiTask);
@@ -200,11 +203,14 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Task added successfully');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to add task');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Update an existing task
   const updateTask = async (id: string, updatedTaskData: Partial<Omit<Task, 'id' | 'createdAt'>>) => {
+    setIsLoading(true);
     try {
       // Map our app's task data to API format
       const apiTaskData: Partial<ApiTask> = {};
@@ -217,7 +223,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (updatedTaskData.estimationValue !== undefined) apiTaskData.estimation_value = updatedTaskData.estimationValue;
       if (updatedTaskData.completed !== undefined) apiTaskData.completed = updatedTaskData.completed;
       
-      await updateTask(id, apiTaskData);
+      await apiUpdateTask(id, apiTaskData);
       
       // Update the local state
       setTasks(prev => 
@@ -235,13 +241,16 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Task updated successfully');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update task');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Delete a task
   const deleteTask = async (id: string) => {
+    setIsLoading(true);
     try {
-      await deleteTask(id);
+      await apiDeleteTask(id);
       
       // Update the local state
       setTasks(prev => prev.filter(task => task.id !== id));
@@ -253,26 +262,23 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.success('Task deleted successfully');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete task');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Toggle task completion status
   const completeTask = async (id: string) => {
     const task = tasks.find(t => t.id === id);
-    if (!task) return;
+    if (!task) {
+      toast.error('Task not found');
+      return;
+    }
     
     const newCompletedStatus = !task.completed;
     
     try {
       await updateTask(id, { completed: newCompletedStatus });
-      
-      // Update the local state
-      setTasks(prev => 
-        prev.map(task => 
-          task.id === id ? { ...task, completed: newCompletedStatus } : task
-        )
-      );
-      
       toast.success(`Task marked as ${newCompletedStatus ? 'completed' : 'active'}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update task status');
@@ -299,7 +305,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
           highPriorityCount: response.metadata.high_priority_count,
           mediumPriorityCount: response.metadata.medium_priority_count,
           lowPriorityCount: response.metadata.low_priority_count,
-          totalEstimatedTime: response.metadata.total_estimated_time,
+          totalEstimatedTime: String(response.metadata.total_estimated_time),
           totalEstimatedHours: response.metadata.total_estimated_hours
         });
       } else {

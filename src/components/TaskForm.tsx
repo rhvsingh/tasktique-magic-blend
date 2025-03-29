@@ -39,6 +39,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
   const [selectedTags, setSelectedTags] = useState<string[]>(initialData.tags || []);
   const [estimationType, setEstimationType] = useState<EstimationType>(initialData.estimationType || 'hours');
   const [estimationValue, setEstimationValue] = useState<number | null>(initialData.estimationValue || null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const handlePriorityChange = (value: string) => {
     setPriority(value as Priority);
@@ -50,6 +51,11 @@ const TaskForm: React.FC<TaskFormProps> = ({
         ? prev.filter(id => id !== tagId) 
         : [...prev, tagId]
     );
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    setDueDate(date);
+    setIsCalendarOpen(false); // Close calendar after date selection
   };
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -98,7 +104,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       <div className="space-y-2">
         <Label>Due Date</Label>
         <div className="flex items-center gap-2">
-          <Popover>
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -115,7 +121,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
               <Calendar
                 mode="single"
                 selected={dueDate}
-                onSelect={setDueDate}
+                onSelect={handleDateChange}
                 initialFocus
                 className="pointer-events-auto"
               />

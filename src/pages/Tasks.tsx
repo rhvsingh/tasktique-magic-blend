@@ -11,24 +11,33 @@ import {
 } from "@/components/ui/dialog";
 import TaskList from "@/components/TaskList";
 import TaskForm from "@/components/TaskForm";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import { Task, useTaskContext } from "@/contexts/TaskContext";
 
 const Tasks = () => {
-  const { tasks, addTask, updateTask } = useTaskContext();
+  const { tasks, addTask, updateTask, isLoading } = useTaskContext();
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   
   // Handle adding a new task
-  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
-    addTask(taskData);
-    setIsAddTaskOpen(false);
+  const handleAddTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    try {
+      await addTask(taskData);
+      setIsAddTaskOpen(false);
+    } catch (error) {
+      console.error("Error adding task:", error);
+    }
   };
 
   // Handle updating a task
-  const handleUpdateTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
-    if (editingTask) {
-      updateTask(editingTask.id, taskData);
+  const handleUpdateTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    if (!editingTask) return;
+    
+    try {
+      await updateTask(editingTask.id, taskData);
       setEditingTask(null);
+    } catch (error) {
+      console.error("Error updating task:", error);
     }
   };
 
@@ -88,6 +97,9 @@ const Tasks = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Global loading indicator */}
+      {isLoading && <LoadingIndicator fullScreen />}
     </div>
   );
 };
