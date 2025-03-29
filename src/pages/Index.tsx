@@ -1,13 +1,44 @@
-// Update this page (the content is just a fallback if you fail to update the page)
 
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { TaskProvider } from "@/contexts/TaskContext";
+import { Outlet, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import Dashboard from "./Dashboard";
+import Tasks from "./Tasks";
+import Today from "./Today";
+import Upcoming from "./Upcoming";
+import CompletedTasks from "./CompletedTasks";
+
+// Layout component with sidebar
+const Layout = () => {
+  return (
+    <SidebarProvider>
+      <TaskProvider>
+        <div className="w-full min-h-screen flex">
+          <AppSidebar />
+          <main className="flex-1">
+            <Outlet />
+          </main>
+        </div>
+      </TaskProvider>
+    </SidebarProvider>
+  );
+};
+
+// Main App Component
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="tasks" element={<Tasks />} />
+        <Route path="today" element={<Today />} />
+        <Route path="upcoming" element={<Upcoming />} />
+        <Route path="completed" element={<CompletedTasks />} />
+        {/* Redirect all other paths to Dashboard */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   );
 };
 
