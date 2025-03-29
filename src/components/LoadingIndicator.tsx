@@ -21,7 +21,7 @@ const LoadingIndicator = ({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[999] flex items-center justify-center bg-background/80 backdrop-blur-sm">
         <div className="flex flex-col items-center space-y-2">
           <Loader 
             className={cn("animate-spin text-taskique-purple", sizeClasses[size], className)} 

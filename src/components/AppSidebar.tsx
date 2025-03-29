@@ -10,6 +10,10 @@ import {
   Settings,
   SparkleIcon,
   Menu,
+  X,
+  Moon,
+  Sun,
+  ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Toggle } from "@/components/ui/toggle";
 import { useTaskContext } from "@/contexts/TaskContext";
 import TaskForm from "@/components/TaskForm";
 import {
@@ -35,33 +40,36 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-
 import { cn } from "@/lib/utils";
-
-// Type for menu items
-interface MenuItem {
-  label: string;
-  icon: typeof Home;
-  path: string;
-  badge?: number;
-}
+import { getStoredTheme, setTheme, Theme } from "@/lib/theme-manager";
 
 export const AppSidebar = () => {
-  const { tasks } = useTaskContext();
+  const { tasks, stats } = useTaskContext();
   const location = useLocation();
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const { state, toggleSidebar } = useSidebar();
+  const [currentTheme, setCurrentTheme] = useState<Theme>('system');
 
-  const menuItems: MenuItem[] = [
+  useEffect(() => {
+    setCurrentTheme(getStoredTheme());
+  }, []);
+
+  const handleThemeToggle = () => {
+    const newTheme: Theme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    setCurrentTheme(newTheme);
+  };
+
+  const menuItems = [
     { label: "Dashboard", icon: Home, path: "/" },
-    { label: "All Tasks", icon: ListChecks, path: "/tasks", badge: tasks.length },
-    { label: "Today", icon: Calendar, path: "/today" },
-    { label: "Upcoming", icon: Calendar, path: "/upcoming" },
+    { label: "All Tasks", icon: ListChecks, path: "/tasks", badge: stats.pendingCount },
+    { label: "Today", icon: Calendar, path: "/today", badge: stats.todayCount },
+    { label: "Upcoming", icon: Calendar, path: "/upcoming", badge: stats.upcomingCount },
     {
       label: "Completed",
       icon: CheckCircle2,
       path: "/completed",
-      badge: tasks.filter((task) => task.completed).length,
+      badge: stats.completedCount,
     },
     { label: "AI Prompts", icon: SparkleIcon, path: "/ai-prompts" },
     { label: "Settings", icon: Settings, path: "/settings" },
@@ -81,6 +89,14 @@ export const AppSidebar = () => {
           <div className="flex items-center px-2">
             <span className="text-xl font-bold text-taskique-purple">TaskTique</span>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={toggleSidebar}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
         </SidebarHeader>
         <SidebarRail />
         <SidebarContent>
@@ -98,7 +114,7 @@ export const AppSidebar = () => {
                       <NavLink to={item.path} className="w-full">
                         <item.icon className="mr-2 h-4 w-4" />
                         <span>{item.label}</span>
-                        {item.badge !== undefined && (
+                        {item.badge !== undefined && item.badge > 0 && (
                           <span className="ml-auto rounded-full bg-taskique-purple/20 px-2 text-xs">
                             {item.badge}
                           </span>
@@ -108,6 +124,33 @@ export const AppSidebar = () => {
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          
+          {/* Dark Mode Toggle */}
+          <SidebarGroup>
+            <SidebarGroupLabel>Appearance</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="px-3 py-2">
+                <Toggle 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  pressed={currentTheme === 'dark'}
+                  onPressedChange={handleThemeToggle}
+                >
+                  {currentTheme === 'dark' ? (
+                    <>
+                      <Moon className="mr-2 h-4 w-4" />
+                      <span>Dark Mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="mr-2 h-4 w-4" />
+                      <span>Light Mode</span>
+                    </>
+                  )}
+                </Toggle>
+              </div>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>

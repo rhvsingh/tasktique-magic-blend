@@ -12,6 +12,7 @@ export interface ApiTask {
   estimation_type: "minutes" | "hours" | "days";
   estimation_value: number | null;
   completed?: boolean;
+  status?: "pending" | "completed";
   created_at: string | null;
   updated_at: string | null;
 }
@@ -92,6 +93,25 @@ export const updateTask = async (taskId: string, taskData: Partial<ApiTask>): Pr
     return data;
   } catch (error) {
     toast.error(error instanceof Error ? error.message : "Failed to update task");
+    throw error;
+  }
+};
+
+export const updateTaskStatus = async (taskId: string, status: "pending" | "completed"): Promise<TaskResponse> => {
+  try {
+    const response = await fetch(`${BASE_URL}/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
+    
+    const data = await handleResponse<TaskResponse>(response);
+    toast.success(data.message || `Task marked as ${status}`);
+    return data;
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : "Failed to update task status");
     throw error;
   }
 };

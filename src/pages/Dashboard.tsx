@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { format, isToday, parseISO } from "date-fns";
+import { format, isToday, parseISO, isAfter, startOfDay, addDays } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,15 +17,27 @@ import AiPrompt from "@/components/AiPrompt";
 import { Task, useTaskContext } from "@/contexts/TaskContext";
 
 const Dashboard = () => {
-  const { tasks, addTask } = useTaskContext();
+  const { tasks, addTask, updateTask } = useTaskContext();
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   
   // Get tasks due today
   const todayTasks = tasks.filter(task => {
-    if (!task.dueDate || task.completed) return false;
+    if (!task.dueDate || task.status === 'completed') return false;
     return isToday(parseISO(task.dueDate));
   });
+  
+  // Get upcoming tasks (within the next 7 days)
+  const today = startOfDay(new Date());
+  const nextWeek = addDays(today, 7);
+  
+  const upcomingTasks = tasks.filter(task => {
+    if (!task.dueDate || task.status === 'completed') return false;
+    
+    const dueDate = startOfDay(parseISO(task.dueDate));
+    return isAfter(dueDate, today) && 
+           dueDate <= nextWeek;
+  }).slice(0, 5);
   
   // Get recently created tasks (last 7 days)
   const recentTasks = tasks
@@ -33,14 +45,22 @@ const Dashboard = () => {
       const createdDate = new Date(task.createdAt);
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      return createdDate >= sevenDaysAgo;
+      return createdDate >= sevenDaysAgo && task.status === 'pending';
     })
     .slice(0, 5);
 
   // Handle adding a new task
-  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'status'>) => {
     addTask(taskData);
     setIsAddTaskOpen(false);
+  };
+
+  // Handle updating a task
+  const handleUpdateTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    if (selectedTask) {
+      updateTask(selectedTask.id, taskData);
+      setSelectedTask(null);
+    }
   };
 
   // Handle clicking on a task
@@ -84,6 +104,16 @@ const Dashboard = () => {
         />
         
         <TaskList
+          tasks={upcomingTasks}
+          title="Upcoming Tasks"
+          onTaskClick={handleTaskClick}
+          initialSort="dueDate"
+          initialDirection="asc"
+          showFilter={false}
+          emptyMessage="No upcoming tasks"
+        />
+        
+        <TaskList
           tasks={recentTasks}
           title="Recently Added"
           onTaskClick={handleTaskClick}
@@ -113,10 +143,7 @@ const Dashboard = () => {
           {selectedTask && (
             <TaskForm 
               initialData={selectedTask}
-              onSubmit={(updatedTask) => {
-                // Implementation handled by TaskProvider's updateTask method
-                setSelectedTask(null);
-              }} 
+              onSubmit={handleUpdateTask} 
               onCancel={() => setSelectedTask(null)}
               submitText="Update Task"
             />

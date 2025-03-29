@@ -20,7 +20,7 @@ const Tasks = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   
   // Handle adding a new task
-  const handleAddTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+  const handleAddTask = async (taskData: Omit<Task, 'id' | 'createdAt' | 'status'>) => {
     try {
       await addTask(taskData);
       setIsAddTaskOpen(false);
@@ -69,6 +69,7 @@ const Tasks = () => {
         title="All Tasks"
         onTaskClick={handleTaskClick}
         emptyMessage="No tasks available"
+        filterStatus="pending"
       />
 
       {/* Add Task Dialog */}

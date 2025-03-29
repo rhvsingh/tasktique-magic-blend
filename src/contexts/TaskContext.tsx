@@ -1,10 +1,11 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ApiTask, fetchTasks, createTask, updateTask as apiUpdateTask, deleteTask as apiDeleteTask, processAiTasks } from '@/lib/api';
+import { ApiTask, fetchTasks, createTask, updateTask as apiUpdateTask, updateTaskStatus as apiUpdateTaskStatus, deleteTask as apiDeleteTask, processAiTasks } from '@/lib/api';
 
 export type Priority = 'low' | 'medium' | 'high';
 export type EstimationType = 'minutes' | 'hours' | 'days';
+export type TaskStatus = 'pending' | 'completed';
 
 export interface Tag {
   id: string;
@@ -17,6 +18,7 @@ export interface Task {
   title: string;
   description: string;
   completed: boolean;
+  status: TaskStatus;
   createdAt: string;
   dueDate: string | null;
   priority: Priority;
@@ -32,6 +34,10 @@ export interface TaskStats {
   lowPriorityCount: number;
   totalEstimatedTime: string;
   totalEstimatedHours: number;
+  pendingCount: number;
+  completedCount: number;
+  todayCount: number;
+  upcomingCount: number;
 }
 
 interface TaskContextProps {
@@ -40,7 +46,7 @@ interface TaskContextProps {
   isLoading: boolean;
   error: string | null;
   stats: TaskStats;
-  addTask: (task: Omit<Task, 'id' | 'createdAt'>) => Promise<void>;
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'status'>) => Promise<void>;
   updateTask: (id: string, updatedTask: Partial<Omit<Task, 'id' | 'createdAt'>>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   completeTask: (id: string) => Promise<void>;
@@ -62,7 +68,11 @@ const defaultStats: TaskStats = {
   mediumPriorityCount: 0,
   lowPriorityCount: 0,
   totalEstimatedTime: "0 minutes",
-  totalEstimatedHours: 0
+  totalEstimatedHours: 0,
+  pendingCount: 0,
+  completedCount: 0,
+  todayCount: 0,
+  upcomingCount: 0
 };
 
 const TaskContext = createContext<TaskContextProps | undefined>(undefined);
@@ -80,7 +90,8 @@ const mapApiTaskToTask = (apiTask: ApiTask): Task => ({
   id: apiTask._id || Math.random().toString(36).substring(2, 9),
   title: apiTask.title,
   description: apiTask.description,
-  completed: apiTask.completed || false,
+  completed: apiTask.completed || apiTask.status === 'completed' || false,
+  status: apiTask.status || (apiTask.completed ? 'completed' : 'pending'),
   createdAt: apiTask.created_at || new Date().toISOString(),
   dueDate: apiTask.due_date,
   priority: apiTask.priority,
@@ -98,6 +109,7 @@ const mapTaskToApiTask = (task: Omit<Task, 'id' | 'createdAt'>): Omit<ApiTask, '
   estimation_type: task.estimationType,
   estimation_value: task.estimationValue,
   completed: task.completed,
+  status: task.status || (task.completed ? 'completed' : 'pending'),
   created_at: null,
   updated_at: null,
 });
@@ -140,7 +152,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
           mediumPriorityCount: response.metadata.medium_priority_count,
           lowPriorityCount: response.metadata.low_priority_count,
           totalEstimatedTime: response.metadata.total_estimated_time,
-          totalEstimatedHours: response.metadata.total_estimated_hours
+          totalEstimatedHours: response.metadata.total_estimated_hours,
+          pendingCount: mappedTasks.filter(task => task.status === 'pending').length,
+          completedCount: mappedTasks.filter(task => task.status === 'completed').length,
+          todayCount: calculateTodayTasksCount(mappedTasks),
+          upcomingCount: calculateUpcomingTasksCount(mappedTasks)
         });
       } else {
         // Calculate stats from tasks
@@ -154,11 +170,39 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Calculate the count of tasks due today
+  const calculateTodayTasksCount = (tasks: Task[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return tasks.filter(task => {
+      if (!task.dueDate || task.status === 'completed') return false;
+      const dueDate = new Date(task.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      return dueDate.getTime() === today.getTime();
+    }).length;
+  };
+
+  // Calculate the count of upcoming tasks
+  const calculateUpcomingTasksCount = (tasks: Task[]) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return tasks.filter(task => {
+      if (!task.dueDate || task.status === 'completed') return false;
+      const dueDate = new Date(task.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      return dueDate.getTime() > today.getTime();
+    }).length;
+  };
+
   // Calculate stats from tasks
   const updateStatsFromTasks = (currentTasks: Task[]) => {
     const highPriorityTasks = currentTasks.filter(task => task.priority === 'high');
     const mediumPriorityTasks = currentTasks.filter(task => task.priority === 'medium');
     const lowPriorityTasks = currentTasks.filter(task => task.priority === 'low');
+    const pendingTasks = currentTasks.filter(task => task.status === 'pending');
+    const completedTasks = currentTasks.filter(task => task.status === 'completed');
     
     let totalHours = 0;
     currentTasks.forEach(task => {
@@ -183,15 +227,20 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mediumPriorityCount: mediumPriorityTasks.length,
       lowPriorityCount: lowPriorityTasks.length,
       totalEstimatedTime: `${totalHours} hours`,
-      totalEstimatedHours: totalHours
+      totalEstimatedHours: totalHours,
+      pendingCount: pendingTasks.length,
+      completedCount: completedTasks.length,
+      todayCount: calculateTodayTasksCount(currentTasks),
+      upcomingCount: calculateUpcomingTasksCount(currentTasks)
     });
   };
 
   // Add a new task
-  const addTask = async (task: Omit<Task, 'id' | 'createdAt'>) => {
+  const addTask = async (task: Omit<Task, 'id' | 'createdAt' | 'status'>) => {
     setIsLoading(true);
     try {
-      const apiTask = mapTaskToApiTask(task);
+      const taskWithStatus = { ...task, status: 'pending' as TaskStatus };
+      const apiTask = mapTaskToApiTask(taskWithStatus);
       const response = await createTask(apiTask);
       
       const newTask = mapApiTaskToTask(response.task);
@@ -221,7 +270,14 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (updatedTaskData.dueDate !== undefined) apiTaskData.due_date = updatedTaskData.dueDate;
       if (updatedTaskData.estimationType !== undefined) apiTaskData.estimation_type = updatedTaskData.estimationType;
       if (updatedTaskData.estimationValue !== undefined) apiTaskData.estimation_value = updatedTaskData.estimationValue;
-      if (updatedTaskData.completed !== undefined) apiTaskData.completed = updatedTaskData.completed;
+      if (updatedTaskData.completed !== undefined) {
+        apiTaskData.completed = updatedTaskData.completed;
+        apiTaskData.status = updatedTaskData.completed ? 'completed' : 'pending';
+      }
+      if (updatedTaskData.status !== undefined) {
+        apiTaskData.status = updatedTaskData.status;
+        apiTaskData.completed = updatedTaskData.status === 'completed';
+      }
       
       await apiUpdateTask(id, apiTaskData);
       
@@ -275,13 +331,42 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     
-    const newCompletedStatus = !task.completed;
+    const newStatus = task.status === 'completed' ? 'pending' : 'completed';
     
+    setIsLoading(true);
     try {
-      await updateTask(id, { completed: newCompletedStatus });
-      toast.success(`Task marked as ${newCompletedStatus ? 'completed' : 'active'}`);
+      await apiUpdateTaskStatus(id, newStatus);
+      
+      // Update the local state
+      setTasks(prev => 
+        prev.map(task => 
+          task.id === id 
+            ? { 
+                ...task, 
+                status: newStatus, 
+                completed: newStatus === 'completed' 
+              } 
+            : task
+        )
+      );
+      
+      // Update stats
+      const updatedTasks = tasks.map(task => 
+        task.id === id 
+          ? { 
+              ...task, 
+              status: newStatus, 
+              completed: newStatus === 'completed' 
+            } 
+          : task
+      );
+      updateStatsFromTasks(updatedTasks);
+      
+      toast.success(`Task marked as ${newStatus}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update task status');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -306,7 +391,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
           mediumPriorityCount: response.metadata.medium_priority_count,
           lowPriorityCount: response.metadata.low_priority_count,
           totalEstimatedTime: String(response.metadata.total_estimated_time),
-          totalEstimatedHours: response.metadata.total_estimated_hours
+          totalEstimatedHours: response.metadata.total_estimated_hours,
+          pendingCount: tasks.filter(task => task.status === 'pending').length + aiTasks.filter(task => task.status === 'pending').length,
+          completedCount: tasks.filter(task => task.status === 'completed').length + aiTasks.filter(task => task.status === 'completed').length,
+          todayCount: calculateTodayTasksCount([...tasks, ...aiTasks]),
+          upcomingCount: calculateUpcomingTasksCount([...tasks, ...aiTasks])
         });
       } else {
         updateStatsFromTasks([...tasks, ...aiTasks]);

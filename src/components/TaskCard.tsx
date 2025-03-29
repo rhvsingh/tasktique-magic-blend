@@ -92,12 +92,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
     );
   };
 
+  const isCompleted = task.status === 'completed' || task.completed;
+
   return (
     <ContextMenu>
       <ContextMenuTrigger>
         <Card
           className={`card-hover border-l-4 ${
-            task.completed ? "border-l-green-500 bg-green-50/30 dark:bg-green-950/10" : 
+            isCompleted ? "border-l-green-500 bg-green-50/30 dark:bg-green-950/10" : 
             task.priority === "high" ? "border-l-red-500" :
             task.priority === "medium" ? "border-l-amber-500" :
             "border-l-green-500"
@@ -106,7 +108,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
         >
           <CardHeader className="p-4 pb-2 flex flex-row justify-between items-start space-y-0">
             <div className="space-y-1">
-              <h3 className={`font-medium leading-tight ${task.completed ? "task-complete" : ""}`}>
+              <h3 className={`font-medium leading-tight ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
                 {task.title}
               </h3>
               <div className="flex items-center gap-2">
@@ -125,7 +127,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={onClick}>Edit</DropdownMenuItem>
                 <DropdownMenuItem onClick={handleComplete}>
-                  {task.completed ? "Mark as Incomplete" : "Mark as Complete"}
+                  {isCompleted ? "Mark as Incomplete" : "Mark as Complete"}
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={handleDelete}
@@ -139,7 +141,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
           
           {task.description && (
             <CardContent className="p-4 pt-0 pb-2">
-              <p className={`text-sm text-muted-foreground ${task.completed ? "task-complete" : ""}`}>
+              <p className={`text-sm text-muted-foreground ${isCompleted ? "line-through" : ""}`}>
                 {task.description}
               </p>
             </CardContent>
@@ -152,13 +154,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
               variant="ghost"
               size="icon"
               className={`h-8 w-8 rounded-full ${
-                task.completed ? "text-green-600 bg-green-100 dark:bg-green-900/20" : ""
+                isCompleted ? "text-green-600 bg-green-100 dark:bg-green-900/20" : ""
               }`}
               onClick={handleComplete}
             >
               <CheckCircle2 className="h-4 w-4" />
               <span className="sr-only">
-                {task.completed ? "Mark as incomplete" : "Mark as complete"}
+                {isCompleted ? "Mark as incomplete" : "Mark as complete"}
               </span>
             </Button>
           </CardFooter>
@@ -168,7 +170,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
       <ContextMenuContent>
         <ContextMenuItem onClick={onClick}>Edit</ContextMenuItem>
         <ContextMenuItem onClick={handleComplete}>
-          {task.completed ? "Mark as Incomplete" : "Mark as Complete"}
+          {isCompleted ? "Mark as Incomplete" : "Mark as Complete"}
         </ContextMenuItem>
         <ContextMenuItem 
           onClick={handleDelete}

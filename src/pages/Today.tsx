@@ -21,12 +21,12 @@ const Today = () => {
   
   // Get tasks due today
   const todayTasks = tasks.filter(task => {
-    if (!task.dueDate) return false;
+    if (!task.dueDate || task.status === 'completed') return false;
     return isToday(parseISO(task.dueDate));
   });
   
   // Handle adding a new task
-  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'status'>) => {
     // Set due date to today if not specified
     if (!taskData.dueDate) {
       taskData.dueDate = new Date().toISOString();
@@ -75,6 +75,7 @@ const Today = () => {
         initialFilter="all"
         initialSort="priority"
         emptyMessage="No tasks due today"
+        filterStatus="pending"
       />
 
       {/* Add Task Dialog */}

@@ -26,7 +26,7 @@ const Upcoming = () => {
   
   // Get tasks for tomorrow
   const tomorrowTasks = tasks.filter(task => {
-    if (!task.dueDate || task.completed) return false;
+    if (!task.dueDate || task.status === 'completed') return false;
     
     const dueDate = startOfDay(parseISO(task.dueDate));
     return isBefore(today, dueDate) && 
@@ -35,7 +35,7 @@ const Upcoming = () => {
   
   // Get tasks for the next 7 days (excluding tomorrow)
   const nextWeekTasks = tasks.filter(task => {
-    if (!task.dueDate || task.completed) return false;
+    if (!task.dueDate || task.status === 'completed') return false;
     
     const dueDate = startOfDay(parseISO(task.dueDate));
     return isAfter(dueDate, tomorrow) && 
@@ -44,14 +44,14 @@ const Upcoming = () => {
   
   // Get tasks due later (beyond next week)
   const laterTasks = tasks.filter(task => {
-    if (!task.dueDate || task.completed) return false;
+    if (!task.dueDate || task.status === 'completed') return false;
     
     const dueDate = startOfDay(parseISO(task.dueDate));
     return isAfter(dueDate, nextWeek);
   });
   
   // Handle adding a new task
-  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'status'>) => {
     addTask(taskData);
     setIsAddTaskOpen(false);
   };

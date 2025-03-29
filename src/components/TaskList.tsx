@@ -26,7 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import TaskCard from "@/components/TaskCard";
-import { Priority, Task, useTaskContext } from "@/contexts/TaskContext";
+import { Priority, Task, TaskStatus, useTaskContext } from "@/contexts/TaskContext";
 
 type SortOption = 'dueDate' | 'priority' | 'title' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
@@ -42,6 +42,7 @@ interface TaskListProps {
   showFilter?: boolean;
   showSearch?: boolean;
   emptyMessage?: string;
+  filterStatus?: TaskStatus;
 }
 
 const TaskList = ({
@@ -53,7 +54,8 @@ const TaskList = ({
   initialFilter = 'all',
   showFilter = true,
   showSearch = true,
-  emptyMessage = "No tasks found"
+  emptyMessage = "No tasks found",
+  filterStatus
 }: TaskListProps) => {
   const [sortBy, setSortBy] = useState<SortOption>(initialSort);
   const [sortDirection, setSortDirection] = useState<SortDirection>(initialDirection);
@@ -63,13 +65,19 @@ const TaskList = ({
   const today = new Date();
   const startOfToday = startOfDay(today);
 
+  // Apply status filter first if provided
+  let filteredByStatusTasks = tasks;
+  if (filterStatus) {
+    filteredByStatusTasks = tasks.filter(task => task.status === filterStatus);
+  }
+
   // Filter tasks based on filter option and search query
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = filteredByStatusTasks.filter(task => {
     // First apply the selected filter
-    if (filter === 'completed' && !task.completed) return false;
-    if (filter === 'active' && task.completed) return false;
+    if (filter === 'completed' && task.status !== 'completed') return false;
+    if (filter === 'active' && task.status !== 'pending') return false;
     if (filter === 'overdue') {
-      if (task.completed || !task.dueDate) return false;
+      if (task.status === 'completed' || !task.dueDate) return false;
       const dueDate = new Date(task.dueDate);
       return isBefore(dueDate, startOfToday) && !isToday(dueDate);
     }
