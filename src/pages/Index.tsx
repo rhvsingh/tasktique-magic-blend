@@ -8,6 +8,8 @@ import Tasks from "./Tasks";
 import Today from "./Today";
 import Upcoming from "./Upcoming";
 import CompletedTasks from "./CompletedTasks";
+import Settings from "./Settings";
+import AiPrompts from "./AiPrompts";
 
 // Layout component with sidebar
 const Layout = () => {
@@ -35,6 +37,8 @@ const Index = () => {
         <Route path="today" element={<Today />} />
         <Route path="upcoming" element={<Upcoming />} />
         <Route path="completed" element={<CompletedTasks />} />
+        <Route path="ai-prompts" element={<AiPrompts />} />
+        <Route path="settings" element={<Settings />} />
         {/* Redirect all other paths to Dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

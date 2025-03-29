@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { format, isToday, parseISO, startOfDay } from "date-fns";
+import { format, isToday, parseISO } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
 import TaskStats from "@/components/TaskStats";
 import TaskList from "@/components/TaskList";
 import TaskForm from "@/components/TaskForm";
+import AiPrompt from "@/components/AiPrompt";
 import { Task, useTaskContext } from "@/contexts/TaskContext";
 
 const Dashboard = () => {
@@ -66,6 +67,12 @@ const Dashboard = () => {
       </div>
 
       <TaskStats tasks={tasks} />
+      
+      {/* AI Prompt Section */}
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold tracking-tight">AI Task Assistant</h2>
+        <AiPrompt />
+      </div>
 
       <div className="space-y-6">
         <TaskList
@@ -104,32 +111,15 @@ const Dashboard = () => {
             <DialogTitle>Task Details</DialogTitle>
           </DialogHeader>
           {selectedTask && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">{selectedTask.title}</h2>
-              {selectedTask.description && (
-                <p className="text-muted-foreground">{selectedTask.description}</p>
-              )}
-              <div className="flex flex-wrap gap-2 text-sm">
-                <div className="flex items-center">
-                  <span className="font-medium mr-2">Created:</span>
-                  <span>{format(new Date(selectedTask.createdAt), 'PPP')}</span>
-                </div>
-                {selectedTask.dueDate && (
-                  <div className="flex items-center">
-                    <span className="font-medium mr-2">Due:</span>
-                    <span>{format(new Date(selectedTask.dueDate), 'PPP')}</span>
-                  </div>
-                )}
-                <div className="flex items-center">
-                  <span className="font-medium mr-2">Priority:</span>
-                  <span className="capitalize">{selectedTask.priority}</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="font-medium mr-2">Status:</span>
-                  <span>{selectedTask.completed ? 'Completed' : 'Active'}</span>
-                </div>
-              </div>
-            </div>
+            <TaskForm 
+              initialData={selectedTask}
+              onSubmit={(updatedTask) => {
+                // Implementation handled by TaskProvider's updateTask method
+                setSelectedTask(null);
+              }} 
+              onCancel={() => setSelectedTask(null)}
+              submitText="Update Task"
+            />
           )}
         </DialogContent>
       </Dialog>

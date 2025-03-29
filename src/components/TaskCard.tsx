@@ -1,133 +1,175 @@
 
-import { Calendar, Clock, Tag } from "lucide-react";
-import { format, isPast, isToday, isTomorrow } from "date-fns";
-
-import { cn } from "@/lib/utils";
-import { Checkbox } from "@/components/ui/checkbox";
+import React from "react";
+import { format, isAfter, isBefore, isToday, parseISO } from "date-fns";
+import { CheckCircle2, Clock, MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Task, useTaskContext } from "@/contexts/TaskContext";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Task, useTaskContext, Priority } from "@/contexts/TaskContext";
-
-const PriorityBadge = ({ priority }: { priority: Priority }) => {
-  const priorityClasses = {
-    high: "priority-high",
-    medium: "priority-medium",
-    low: "priority-low",
-  };
-
-  return (
-    <Badge variant="outline" className={cn("capitalize", priorityClasses[priority])}>
-      {priority}
-    </Badge>
-  );
-};
-
-const DueDateBadge = ({ dueDate }: { dueDate: string | null }) => {
-  if (!dueDate) return null;
-
-  const date = new Date(dueDate);
-  const isOverdue = isPast(date) && !isToday(date);
-  
-  let displayText = '';
-  let className = '';
-
-  if (isToday(date)) {
-    displayText = 'Today';
-    className = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
-  } else if (isTomorrow(date)) {
-    displayText = 'Tomorrow';
-    className = 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
-  } else if (isOverdue) {
-    displayText = 'Overdue';
-    className = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-  } else {
-    displayText = format(date, 'MMM d');
-    className = 'bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-300';
-  }
-
-  return (
-    <Badge variant="outline" className={cn(className)}>
-      <Calendar className="mr-1 h-3 w-3" />
-      {displayText}
-    </Badge>
-  );
-};
 
 interface TaskCardProps {
   task: Task;
   onClick?: () => void;
 }
 
-const TaskCard = ({ task, onClick }: TaskCardProps) => {
-  const { completeTask, tags: allTags } = useTaskContext();
-
-  // Get the tags that are associated with this task
-  const taskTags = allTags.filter(tag => task.tags.includes(tag.id));
-
-  // Format the created date
-  const createdDate = new Date(task.createdAt);
-  const formattedDate = format(createdDate, 'MMM d, yyyy');
+const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
+  const { completeTask, deleteTask } = useTaskContext();
 
   const handleComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
     completeTask(task.id);
   };
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteTask(task.id);
+  };
+
+  // Function to render the due date status
+  const renderDueDate = () => {
+    if (!task.dueDate) return null;
+
+    const dueDate = parseISO(task.dueDate);
+    const today = new Date();
+    let statusClass = "";
+    let statusText = format(dueDate, "MMM d");
+
+    if (isToday(dueDate)) {
+      statusClass = "text-amber-600 dark:text-amber-400";
+      statusText = "Today";
+    } else if (isBefore(dueDate, today)) {
+      statusClass = "text-red-600 dark:text-red-400";
+      statusText = `Overdue: ${statusText}`;
+    } else if (
+      isAfter(dueDate, today) &&
+      isBefore(dueDate, new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000))
+    ) {
+      statusClass = "text-amber-600 dark:text-amber-400";
+      statusText = `Soon: ${statusText}`;
+    }
+
+    return (
+      <div className={`flex items-center text-xs ${statusClass}`}>
+        <Clock className="mr-1 h-3 w-3" />
+        {statusText}
+      </div>
+    );
+  };
+
+  // Function to render priority badge
+  const renderPriorityBadge = () => {
+    const priorityClass = `priority-${task.priority}`;
+    return <Badge className={`${priorityClass} capitalize`}>{task.priority}</Badge>;
+  };
+
+  const renderEstimation = () => {
+    if (task.estimationValue === null) return null;
+
+    return (
+      <div className="text-xs text-muted-foreground">
+        Est: {task.estimationValue} {task.estimationType}
+      </div>
+    );
+  };
+
   return (
-    <Card 
-      className={cn(
-        "card-hover cursor-pointer overflow-hidden border-l-4",
-        task.completed ? "border-l-gray-400" : `border-l-taskique-purple`
-      )}
-      onClick={onClick}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          <Checkbox 
-            checked={task.completed} 
-            onClick={handleComplete}
-            className="mt-1"
-          />
-          <div className="space-y-1 flex-1">
-            <h3 className={cn("font-medium", task.completed && "task-complete")}>
-              {task.title}
-            </h3>
-            {task.description && (
-              <p className={cn("text-sm text-muted-foreground line-clamp-2", task.completed && "task-complete")}>
+    <ContextMenu>
+      <ContextMenuTrigger>
+        <Card
+          className={`card-hover border-l-4 ${
+            task.completed ? "border-l-green-500 bg-green-50/30 dark:bg-green-950/10" : 
+            task.priority === "high" ? "border-l-red-500" :
+            task.priority === "medium" ? "border-l-amber-500" :
+            "border-l-green-500"
+          }`}
+          onClick={onClick}
+        >
+          <CardHeader className="p-4 pb-2 flex flex-row justify-between items-start space-y-0">
+            <div className="space-y-1">
+              <h3 className={`font-medium leading-tight ${task.completed ? "task-complete" : ""}`}>
+                {task.title}
+              </h3>
+              <div className="flex items-center gap-2">
+                {renderPriorityBadge()}
+                {renderDueDate()}
+              </div>
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onClick}>Edit</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleComplete}>
+                  {task.completed ? "Mark as Incomplete" : "Mark as Complete"}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={handleDelete}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </CardHeader>
+          
+          {task.description && (
+            <CardContent className="p-4 pt-0 pb-2">
+              <p className={`text-sm text-muted-foreground ${task.completed ? "task-complete" : ""}`}>
                 {task.description}
               </p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-wrap items-center gap-2 p-4 pt-0">
-        <div className="flex items-center gap-2">
-          {task.dueDate && (
-            <DueDateBadge dueDate={task.dueDate} />
+            </CardContent>
           )}
-          <PriorityBadge priority={task.priority} />
-        </div>
-        
-        <div className="flex items-center gap-1 ml-auto">
-          {taskTags.map(tag => (
-            <Badge 
-              key={tag.id} 
-              variant="outline" 
-              className="flex items-center"
-              style={{ 
-                backgroundColor: `${tag.color}20`, // 20% opacity
-                borderColor: tag.color,
-                color: tag.color 
-              }}
+          
+          <CardFooter className="p-4 pt-2 flex justify-between items-center">
+            {renderEstimation()}
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-8 w-8 rounded-full ${
+                task.completed ? "text-green-600 bg-green-100 dark:bg-green-900/20" : ""
+              }`}
+              onClick={handleComplete}
             >
-              <Tag className="mr-1 h-3 w-3" />
-              {tag.name}
-            </Badge>
-          ))}
-        </div>
-      </CardFooter>
-    </Card>
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="sr-only">
+                {task.completed ? "Mark as incomplete" : "Mark as complete"}
+              </span>
+            </Button>
+          </CardFooter>
+        </Card>
+      </ContextMenuTrigger>
+      
+      <ContextMenuContent>
+        <ContextMenuItem onClick={onClick}>Edit</ContextMenuItem>
+        <ContextMenuItem onClick={handleComplete}>
+          {task.completed ? "Mark as Incomplete" : "Mark as Complete"}
+        </ContextMenuItem>
+        <ContextMenuItem 
+          onClick={handleDelete}
+          className="text-red-600 focus:text-red-600"
+        >
+          Delete
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 };
 

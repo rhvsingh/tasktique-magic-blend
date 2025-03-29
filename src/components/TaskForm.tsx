@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { useTaskContext, Priority, Task } from '@/contexts/TaskContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTaskContext, Priority, Task, EstimationType } from '@/contexts/TaskContext';
 import { Badge } from '@/components/ui/badge';
 
 interface TaskFormProps {
@@ -36,6 +37,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
   );
   const [priority, setPriority] = useState<Priority>(initialData.priority || 'medium');
   const [selectedTags, setSelectedTags] = useState<string[]>(initialData.tags || []);
+  const [estimationType, setEstimationType] = useState<EstimationType>(initialData.estimationType || 'hours');
+  const [estimationValue, setEstimationValue] = useState<number | null>(initialData.estimationValue || null);
   
   const handlePriorityChange = (value: string) => {
     setPriority(value as Priority);
@@ -63,6 +66,8 @@ const TaskForm: React.FC<TaskFormProps> = ({
       priority,
       tags: selectedTags,
       completed: initialData.completed || false,
+      estimationType,
+      estimationValue,
     });
   };
   
@@ -150,6 +155,34 @@ const TaskForm: React.FC<TaskFormProps> = ({
             <Label htmlFor="high" className="cursor-pointer">High</Label>
           </div>
         </RadioGroup>
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Estimation</Label>
+        <div className="flex gap-2">
+          <Select 
+            value={estimationType} 
+            onValueChange={(value) => setEstimationType(value as EstimationType)}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Select unit" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="minutes">Minutes</SelectItem>
+              <SelectItem value="hours">Hours</SelectItem>
+              <SelectItem value="days">Days</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Input
+            type="number"
+            min="0"
+            placeholder="Value"
+            value={estimationValue !== null ? estimationValue : ''}
+            onChange={(e) => setEstimationValue(e.target.value ? Number(e.target.value) : null)}
+            className="flex-1"
+          />
+        </div>
       </div>
       
       <div className="space-y-2">
