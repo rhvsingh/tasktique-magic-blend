@@ -100,12 +100,12 @@ export const updateTask = async (taskId: string, taskData: Partial<ApiTask>): Pr
 export const updateTaskStatus = async (taskId: string, status: "pending" | "completed"): Promise<TaskResponse> => {
   try {
     // The API expects a PUT request for updating task status, not PATCH
-    const response = await fetch(`${BASE_URL}/tasks/${taskId}`, {
-      method: "PUT",
+    const response = await fetch(`${BASE_URL}/tasks/${taskId}/status`, {
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ status, completed: status === "completed" }),
+      body: JSON.stringify({ status }),
     });
     
     const data = await handleResponse<TaskResponse>(response);
