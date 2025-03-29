@@ -191,6 +191,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!task.dueDate || task.status === 'completed') return false;
       const dueDate = new Date(task.dueDate);
       dueDate.setHours(0, 0, 0, 0);
+      // Only count tasks with due dates that are after today (not including today)
       return dueDate.getTime() > today.getTime();
     }).length;
   };

@@ -165,12 +165,12 @@ export const AppSidebar = () => {
         </SidebarFooter>
       </Sidebar>
 
-      {/* Toggle Button for Collapsed Sidebar */}
+      {/* Toggle Button for Collapsed Sidebar - Moved to right side */}
       {state === "collapsed" && (
         <Button 
           variant="outline" 
           size="icon" 
-          className="fixed left-2 top-4 z-50 md:flex hidden"
+          className="fixed right-2 top-4 z-50 md:flex hidden"
           onClick={toggleSidebar}
         >
           <Menu className="h-4 w-4" />

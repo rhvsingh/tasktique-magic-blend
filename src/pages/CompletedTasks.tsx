@@ -16,6 +16,9 @@ const CompletedTasks = () => {
   const { tasks, updateTask } = useTaskContext();
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   
+  // Get only completed tasks
+  const completedTasks = tasks.filter(task => task.status === 'completed');
+  
   // Handle updating a task
   const handleUpdateTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
     if (editingTask) {
@@ -39,14 +42,13 @@ const CompletedTasks = () => {
       </div>
 
       <TaskList
-        tasks={tasks}
+        tasks={completedTasks}
         title="Completed"
         onTaskClick={handleTaskClick}
         initialSort="createdAt"
         initialDirection="desc"
-        initialFilter="completed"
+        initialFilter="all"
         emptyMessage="You haven't completed any tasks yet"
-        filterStatus="completed"
       />
 
       {/* Edit Task Dialog */}
