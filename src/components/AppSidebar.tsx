@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Toggle } from "@/components/ui/toggle";
-import { useTaskContext } from "@/contexts/TaskContext";
+import { useTaskContext, Task } from "@/contexts/TaskContext";
 import TaskForm from "@/components/TaskForm";
 import {
   Sidebar,
@@ -77,7 +77,7 @@ export const AppSidebar = () => {
 
   const { addTask } = useTaskContext();
 
-  const handleAddTask = async (taskData: Omit<any, "id" | "createdAt">) => {
+  const handleAddTask = async (taskData: Omit<Task, "id" | "createdAt" | "status">) => {
     await addTask(taskData);
     setIsAddTaskOpen(false);
   };

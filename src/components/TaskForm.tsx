@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTaskContext, Priority, Task, EstimationType } from '@/contexts/TaskContext';
+import { useTaskContext, Priority, Task, EstimationType, TaskStatus } from '@/contexts/TaskContext';
 import { Badge } from '@/components/ui/badge';
 
 interface TaskFormProps {
@@ -72,6 +72,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       priority,
       tags: selectedTags,
       completed: initialData.completed || false,
+      status: initialData.status || 'pending' as TaskStatus,
       estimationType,
       estimationValue,
     });

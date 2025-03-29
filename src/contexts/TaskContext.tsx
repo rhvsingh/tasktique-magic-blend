@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ApiTask, fetchTasks, createTask, updateTask as apiUpdateTask, updateTaskStatus as apiUpdateTaskStatus, deleteTask as apiDeleteTask, processAiTasks } from '@/lib/api';
@@ -91,7 +90,7 @@ const mapApiTaskToTask = (apiTask: ApiTask): Task => ({
   title: apiTask.title,
   description: apiTask.description,
   completed: apiTask.completed || apiTask.status === 'completed' || false,
-  status: apiTask.status || (apiTask.completed ? 'completed' : 'pending'),
+  status: (apiTask.status as TaskStatus) || (apiTask.completed ? 'completed' : 'pending'),
   createdAt: apiTask.created_at || new Date().toISOString(),
   dueDate: apiTask.due_date,
   priority: apiTask.priority,
@@ -109,7 +108,7 @@ const mapTaskToApiTask = (task: Omit<Task, 'id' | 'createdAt'>): Omit<ApiTask, '
   estimation_type: task.estimationType,
   estimation_value: task.estimationValue,
   completed: task.completed,
-  status: task.status || (task.completed ? 'completed' : 'pending'),
+  status: task.status,
   created_at: null,
   updated_at: null,
 });
@@ -377,8 +376,15 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await processAiTasks(promptText);
       
-      // Map API tasks to our app's task format
-      const aiTasks = response.tasks.map(mapApiTaskToTask);
+      // Map API tasks to our app's task format and ensure status is correctly typed
+      const aiTasks = response.tasks.map(apiTask => {
+        const mappedTask = mapApiTaskToTask(apiTask);
+        // Ensure status is a valid TaskStatus
+        if (mappedTask.status !== 'pending' && mappedTask.status !== 'completed') {
+          mappedTask.status = mappedTask.completed ? 'completed' : 'pending';
+        }
+        return mappedTask;
+      });
       
       // Update local state with new tasks
       setTasks(prev => [...prev, ...aiTasks]);
