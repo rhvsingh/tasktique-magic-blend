@@ -1,7 +1,7 @@
 
 import { toast } from "sonner";
 
-export const BASE_URL = "https://techpix-hackathon-task-management.onrender.com/";
+export const BASE_URL = "https://techpix-hackathon-task-management.onrender.com";
 
 export interface ApiTask {
   _id?: string;
